@@ -132,10 +132,12 @@ package body AWS.Server is
       Host          : String;
       Port          : Natural;
       Family        : Net.Family_Type := Net.Family_Unspec;
-      Reuse_Address : Boolean         := False) is
+      Reuse_Address : Boolean         := False;
+      IPv6_Only     : Boolean         := False) is
    begin
       Net.Acceptors.Add_Listening
-        (Web_Server.Acceptor, Host, Port, Family, Reuse_Address);
+        (Web_Server.Acceptor, Host, Port, Family, IPv6_Only => IPv6_Only,
+         Reuse_Address => Reuse_Address);
    end Add_Listening;
 
    ------------

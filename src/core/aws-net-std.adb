@@ -59,7 +59,7 @@ package body AWS.Net.Std is
    function Get_Inet_Addr
      (Host    : String;
       Family  : Family_Type;
-      Passive : Boolean) return Sockets.Address_Info with Inline;
+      Passive : Boolean) return Sockets.Address_Info;
    --  Returns the inet address for the given host
 
    procedure Set_Non_Blocking_Mode (Socket : Socket_Type);
@@ -113,6 +113,7 @@ package body AWS.Net.Std is
       Port          : Natural;
       Host          : String      := "";
       Reuse_Address : Boolean     := False;
+      IPv6_Only     : Boolean     := False;
       Family        : Family_Type := Family_Unspec)
    is
       Addr_Info : Sockets.Address_Info;
@@ -128,6 +129,13 @@ package body AWS.Net.Std is
 
       Sockets.Create_Socket
         (Socket.S.FD, Addr_Info.Addr.Family, Addr_Info.Mode, Addr_Info.Level);
+
+      if Family = Family_Inet6 then
+         Sockets.Set_Socket_Option
+           (Socket.S.FD, Sockets.IP_Protocol_For_IPv6_Level,
+            (Name => Sockets.IPv6_Only, Enabled => IPv6_Only));
+      end if;
+
       Created := True;
 
       Set_Non_Blocking_Mode (Socket);
@@ -164,7 +172,7 @@ package body AWS.Net.Std is
       Family : Family_Type := Family_Unspec)
    is
       Addr_Info : Sockets.Address_Info;
-      Sock_Addr : Sockets.Sock_Addr_Type;
+      Sock_Addr : Sockets.Sock_Addr_Type := Sockets.No_Sock_Addr;
 
       Close_On_Exception : Boolean := False;
 
@@ -407,11 +415,24 @@ package body AWS.Net.Std is
    function Get_Inet_Addr
      (Host    : String;
       Family  : Family_Type;
-      Passive : Boolean) return Sockets.Address_Info is
+      Passive : Boolean) return Sockets.Address_Info
+   is
+      Dummy : Socket_Type;
    begin
-      return Sockets.Get_Address_Info
-        (Host, "", To_GNAT (Family), Passive => Passive)
-          (1);
+      declare
+         Addr_Info : constant Sockets.Address_Info_Array :=
+           Sockets.Get_Address_Info
+             (Host, "", To_GNAT (Family), Passive => Passive);
+      begin
+         if Addr_Info'Length = 0 then
+            raise Socket_Error with "Host name " & Host & " not known";
+         end if;
+
+         return Addr_Info (1);
+      end;
+   exception
+      when E : Sockets.Socket_Error =>
+         Raise_Exception (E, "Get_Inet_Addr " & Host, Dummy);
    end Get_Inet_Addr;
 
    --------------

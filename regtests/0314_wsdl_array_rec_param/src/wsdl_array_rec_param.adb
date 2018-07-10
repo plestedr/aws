@@ -20,6 +20,7 @@ with Ada.Text_IO;
 with Ada.Strings.Unbounded;
 
 with AWS.Config.Set;
+with AWS.Net;
 with AWS.Response;
 with AWS.Server;
 with AWS.Status;
@@ -49,6 +50,10 @@ begin
 
    Config.Set.Server_Port
      (Conf, AWS_Test_Service.Server.Port);
+
+   if Net.IPv6_Available then
+      Config.Set.Protocol_Family (Conf, "Family_Inet6");
+   end if;
 
    Disp := SOAP.Dispatchers.Callback.Create
      (CB'Unrestricted_access,
